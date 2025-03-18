@@ -27,18 +27,12 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans antialiased bg-[#f8f9fa] dark:bg-gray-900`}
       >
-        <div className="min-h-screen flex">
-          {/* Sidebar */}
-         
-
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto">
+       
             
-            <div className="p-6">
+<div className="">
               {children}
             </div>
-          </main>
-        </div>
+          
       </body>
     </html>
   );

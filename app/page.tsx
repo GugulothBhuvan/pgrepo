@@ -16,7 +16,6 @@ import { useState } from 'react';
 import 'chartjs-adapter-date-fns';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import Split from 'react-split';
-import Image from 'next/image';
 
 // Register ChartJS components and plugins
 ChartJS.register(
@@ -203,6 +202,10 @@ export default function Home() {
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   // Add view mode state
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'comparison'>('graph');
+  // Add state for plant comparison view
+  const [plantComparisonMode, setPlantComparisonMode] = useState<'graph' | 'table'>('graph');
+  // Add state for branch selection per plant
+  const [plantBranchSelections, setPlantBranchSelections] = useState<Record<string, string>>({});
   
   // Get unique branches from selected test's results for selected plant
   const availableBranches = selectedTest && selectedPlant
@@ -301,23 +304,87 @@ export default function Home() {
     },
   };
 
+  // Get latest test results for each plant and selected branch
+  const getLatestPlantResults = () => {
+    if (!selectedTest) return [];
+    
+    return allPlants.map(plant => {
+      const plantId = allPlants.findIndex(p => p.plant === plant.plant) + 1;
+      const branch = plantBranchSelections[plant.plant] || availableBranches[0];
+      
+      const results = selectedTest.testResults
+        .filter(result => result.builder_id === plantId && result.branch === branch)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      return {
+        plant: plant.plant,
+        branch,
+        metric: results[0]?.metric || '0',
+        timestamp: results[0]?.timestamp || '',
+        revision: results[0]?.revision || ''
+      };
+    });
+  };
+
+  // Plant comparison chart data
+  const plantComparisonData = {
+    labels: allPlants.map(plant => plant.plant),
+    datasets: [{
+      label: 'Latest Performance Score',
+      data: getLatestPlantResults().map(result => parseFloat(result.metric)),
+      backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      borderColor: 'rgb(75, 192, 192)',
+      borderWidth: 1,
+    }],
+  };
+
+  const plantComparisonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      tooltip: {
+        callbacks: {
+          afterBody: (context: any) => {
+            const dataIndex = context[0].dataIndex;
+            const result = getLatestPlantResults()[dataIndex];
+            return [
+              `Branch: ${result.branch}`,
+              `Date: ${result.timestamp}`,
+              `Revision: ${result.revision}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        title: {
+          display: true,
+          text: 'Performance Score',
+        },
+      },
+    },
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-4">
-          <div className="flex h-16">
-            <div className="flex items-center pl-2">
-              <div className="flex items-center space-x-3">
-                <Image
-                  src="/image.png"
-                  alt="Postgres Logo"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
                 <span className="text-2xl font-extrabold text-gray-900">Postgres</span>
               </div>
+            </div>
+            <div className="flex items-center">
+              <button className="text-gray-900 px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-100 transition">
+                Log In
+              </button>
             </div>
           </div>
         </div>
@@ -449,74 +516,89 @@ export default function Home() {
               </div>
             </section>
           )}
-        </div>
 
-        {/* Charts Section */}
-        <div className="flex flex-col gap-6 p-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold text-gray-900">Performance Metrics</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode('graph')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-                    viewMode === 'graph'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Line Graph
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-                    viewMode === 'table'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Table View
-                </button>
+          {/* Plant Comparison Section */}
+          {selectedTest && (
+            <section className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold text-gray-900">Plant Comparison</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPlantComparisonMode('graph')}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                      plantComparisonMode === 'graph'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Bar Chart
+                  </button>
+                  <button
+                    onClick={() => setPlantComparisonMode('table')}
+                    className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                      plantComparisonMode === 'table'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Table View
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            {viewMode === 'graph' ? (
-              <div className="h-[600px] bg-white rounded-lg">
-                {selectedTest && selectedBranches.length > 0 ? (
-                  <Line data={chartData} options={chartOptions} />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    Select a test and at least one branch to view the graph
+
+              {/* Branch Selection Dropdowns */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {allPlants.map(plant => (
+                  <div key={plant.plant} className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700 mb-1">{plant.plant}</label>
+                    <select
+                      value={plantBranchSelections[plant.plant] || ''}
+                      onChange={(e) => setPlantBranchSelections(prev => ({
+                        ...prev,
+                        [plant.plant]: e.target.value
+                      }))}
+                      className="text-sm border border-gray-300 rounded-md px-2 py-1"
+                    >
+                      <option value="">Select Branch</option>
+                      {availableBranches.map(branch => (
+                        <option key={branch} value={branch}>{branch}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                ))}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                {selectedTest && selectedBranches.length > 0 ? (
+
+              {/* Plant Comparison Chart/Table */}
+              {plantComparisonMode === 'graph' ? (
+                <div className="h-[400px]">
+                  <Bar data={plantComparisonData} options={plantComparisonOptions} />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                   <table className="min-w-full border border-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Date</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Plant</th>
                         <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Branch</th>
-                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Build #</th>
-                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Metric</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Latest Score</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Date</th>
                         <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Revision</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTestResults.map((result, index) => (
+                      {getLatestPlantResults().map((result, index) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                            {result.timestamp}
+                            {result.plant}
                           </td>
                           <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
                             {result.branch}
                           </td>
                           <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                            {result.build_number}
+                            {result.metric}
                           </td>
                           <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                            {result.metric}
+                            {result.timestamp}
                           </td>
                           <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900 font-mono">
                             {result.revision}
@@ -525,14 +607,92 @@ export default function Home() {
                       ))}
                     </tbody>
                   </table>
-                ) : (
-                  <div className="h-[600px] flex items-center justify-center text-gray-500">
-                    Select a test and at least one branch to view the data
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* Left Section - Time Series Charts */}
+        <div className="flex-1 bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900">Performance Metrics</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('graph')}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  viewMode === 'graph'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Line Graph
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  viewMode === 'table'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Table View
+              </button>
+            </div>
           </div>
+          
+          {viewMode === 'graph' ? (
+            <div className="h-[600px] bg-white rounded-lg">
+              {selectedTest && selectedBranches.length > 0 ? (
+                <Line data={chartData} options={chartOptions} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  Select a test and at least one branch to view the graph
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              {selectedTest && selectedBranches.length > 0 ? (
+                <table className="min-w-full border border-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Date</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Branch</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Build #</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Metric</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Revision</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTestResults.map((result, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {result.timestamp}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {result.branch}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {result.build_number}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {result.metric}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900 font-mono">
+                          {result.revision}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="h-[600px] flex items-center justify-center text-gray-500">
+                  Select a test and at least one branch to view the data
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Split>
     </main>
