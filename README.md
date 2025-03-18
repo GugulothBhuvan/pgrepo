@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Postgres Performance Analytics Dashboard
+
+A modern web application built with Next.js for visualizing and analyzing PostgreSQL performance test results across different branches and environments.
+
+## Features
+
+- 📊 Interactive Performance Visualization
+  - Line graphs showing performance metrics over time
+  - Table view for detailed data analysis
+  - Zoom and pan capabilities for detailed data exploration
+
+- 🔍 Advanced Filtering
+  - Filter by test types (OLTP, DSS)
+  - Branch-based filtering with multi-select capability
+  - Plant/environment-specific data views
+
+- 📱 Modern UI/UX
+  - Clean, responsive design
+  - Split-view layout for efficient workspace utilization
+  - Interactive tables with sorting and hover states
+  - Dark/Light mode support
+
+## Tech Stack
+
+- **Framework**: Next.js 14
+- **Styling**: Tailwind CSS
+- **Charts**: Chart.js with React-Chartjs-2
+- **Layout**: React-Split for resizable panels
+- **Data Visualization**: 
+  - Chartjs-plugin-zoom for interactive charts
+  - Date-fns adapter for time-series data
 
 ## Getting Started
 
-First, run the development server:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd <repository-name>
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open the application**
+   Navigate to [http://localhost:3000](http://localhost:3000) in your browser
+
+## Project Structure
+
+```
+├── app/
+│   ├── components/     # React components
+│   ├── layout.tsx     # Root layout
+│   └── page.tsx       # Main dashboard page
+├── public/
+│   └── image.png      # Postgres logo
+└── package.json       # Project dependencies
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features in Detail
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Performance Tests
+- Database Test 2 (OLTP)
+- Database Test 3 (DSS)
+- Database Test 5 (OLTP)
+- Database Test 7 (DSS)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Branch Management
+Supports multiple branch types:
+- Stable releases (REL_XX_STABLE)
+- Main branch
+- Development branch
+- Testing branch
+- Feature branches
 
-## Learn More
+### Data Visualization
+- Interactive line charts
+- Detailed tooltips with commit information
+- Performance metric comparisons
+- Time-series analysis
 
-To learn more about Next.js, take a look at the following resources:
+### Plant Management
+- Multiple plant environments
+- Admin and host information
+- Result count tracking
+- Environment-specific metrics
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License - see the LICENSE file for details.

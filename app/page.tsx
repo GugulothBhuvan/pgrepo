@@ -16,6 +16,7 @@ import { useState } from 'react';
 import 'chartjs-adapter-date-fns';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import Split from 'react-split';
+import Image from 'next/image';
 
 // Register ChartJS components and plugins
 ChartJS.register(
@@ -31,172 +32,208 @@ ChartJS.register(
   zoomPlugin // Register the zoom plugin
 );
 
+// Add these type definitions at the top after imports
+type DetailedTestResult = {
+  build_number: number;
+  builder_id: number;
+  ctime: number;
+  metric: string;
+  revision: string;
+  scale: number;
+  timestamp: string;
+  branch: string;
+  log_summary_id: number;
+  log_test_id: number;
+};
+
+type PlantSummary = {
+  plant: string;
+  admin: string;
+  host: string;
+  results: number;
+};
+
+type PerformanceTest = {
+  id: string;
+  name: string;
+  description: string;
+  plants: PlantSummary[];
+  testResults: DetailedTestResult[];
+};
+
+// Define all plants that are available for all tests
+const allPlants: PlantSummary[] = [
+  { plant: 'Plant A', admin: 'Admin1', host: 'host1.example.com', results: 156 },
+  { plant: 'Plant B', admin: 'Admin2', host: 'host2.example.com', results: 234 },
+  { plant: 'Plant C', admin: 'Admin3', host: 'host3.example.com', results: 189 },
+  { plant: 'Plant D', admin: 'Admin4', host: 'host4.example.com', results: 145 },
+  { plant: 'Plant E', admin: 'Admin5', host: 'host5.example.com', results: 167 },
+  { plant: 'Plant F', admin: 'Admin6', host: 'host6.example.com', results: 178 },
+  { plant: 'Plant G', admin: 'Admin7', host: 'host7.example.com', results: 198 },
+  { plant: 'Plant H', admin: 'Admin8', host: 'host8.example.com', results: 167 },
+  { plant: 'Plant I', admin: 'Admin9', host: 'host9.example.com', results: 189 },
+];
+
+// Define all branches
+const allBranches = [
+  'REL_13_STABLE',
+  'REL_14_STABLE',
+  'REL_15_STABLE',
+  'REL_16_STABLE',
+  'REL_17_STABLE',
+  'main',
+  'DEVEL',
+  'TESTING',
+  'FEATURE_A',
+  'FEATURE_B',
+  'FEATURE_C',
+  'FEATURE_D',
+  'FEATURE_E',
+  'FEATURE_F',
+  'FEATURE_G',
+  'FEATURE_H'
+];
+
+// Helper function to generate test results for a plant and branch
+const generateTestResults = (plantId: number, branch: string, baseMetric: number): DetailedTestResult[] => {
+  const results: DetailedTestResult[] = [];
+  const dates = [
+    '2024-01-01', '2024-01-15', '2024-02-01', '2024-02-15', '2024-03-01', '2024-03-15'
+  ];
+
+  // Create unique patterns for different branch types
+  const branchType = branch.includes('STABLE') ? 'stable' :
+                    branch === 'main' ? 'main' :
+                    branch === 'DEVEL' ? 'devel' :
+                    branch === 'TESTING' ? 'testing' : 'feature';
+  
+  // Base variations for different branch types
+  const branchVariations = {
+    stable: 0.95,    // Stable branches perform slightly worse but more consistently
+    main: 1.0,       // Main branch is the baseline
+    devel: 1.05,     // Development branch has some optimizations
+    testing: 0.98,   // Testing branch is close to main
+    feature: 0.92    // Feature branches might have experimental changes
+  };
+
+  // Add branch-specific random factor
+  const branchRandomFactor = Math.random() * 0.1 - 0.05; // Random value between -0.05 and 0.05
+  
+  dates.forEach((date, index) => {
+    // Create more complex variations
+    const timeVariation = Math.sin(index * 0.5) * 2000; // Base time variation
+    const branchSpecificVariation = Math.sin(index * 0.3 + branch.length) * 1500; // Branch-specific pattern
+    const randomNoise = (Math.random() - 0.5) * 1000; // Random noise
+    
+    // Calculate final metric with all variations
+    const branchMultiplier = branchVariations[branchType] + branchRandomFactor;
+    const metric = (baseMetric * branchMultiplier + timeVariation + branchSpecificVariation + randomNoise).toFixed(2);
+    
+    results.push({
+      build_number: 100 + index,
+      builder_id: plantId,
+      ctime: new Date(date).getTime() / 1000,
+      metric,
+      revision: `${Math.random().toString(16).substring(2, 8)}`,
+      scale: 1,
+      timestamp: date,
+      branch,
+      log_summary_id: plantId * 100 + index,
+      log_test_id: plantId * 100 + index,
+    });
+  });
+  
+  return results;
+};
+
+// Mock data for performance tests
+const performanceTests: PerformanceTest[] = [
+  {
+    id: 'dbt2',
+    name: 'Database Test 2',
+    description: 'OLTP',
+    plants: allPlants,
+    testResults: allPlants.flatMap((plant, plantIndex) =>
+      allBranches.flatMap(branch =>
+        generateTestResults(plantIndex + 1, branch, 550000 + plantIndex * 5000)
+      )
+    ),
+  },
+  {
+    id: 'dbt3',
+    name: 'Database Test 3',
+    description: 'DSS',
+    plants: allPlants,
+    testResults: allPlants.flatMap((plant, plantIndex) =>
+      allBranches.flatMap(branch =>
+        generateTestResults(plantIndex + 1, branch, 580000 + plantIndex * 5000)
+      )
+    ),
+  },
+  {
+    id: 'dbt5',
+    name: 'Database Test 5',
+    description: 'OLTP',
+    plants: allPlants,
+    testResults: allPlants.flatMap((plant, plantIndex) =>
+      allBranches.flatMap(branch =>
+        generateTestResults(plantIndex + 1, branch, 600000 + plantIndex * 5000)
+      )
+    ),
+  },
+  {
+    id: 'dbt7',
+    name: 'Database Test 7',
+    description: 'DSS',
+    plants: allPlants,
+    testResults: allPlants.flatMap((plant, plantIndex) =>
+      allBranches.flatMap(branch =>
+        generateTestResults(plantIndex + 1, branch, 620000 + plantIndex * 5000)
+      )
+    ),
+  },
+];
+
 export default function Home() {
-  // Sample branches data
-  const branches = [
-    'REL_13_STABLE',
-    'REL_14_STABLE',
-    'REL_15_STABLE',
-    'REL_16_STABLE',
-    'REL_17_STABLE',
-    'main',
-    'DEVEL',
-    'TESTING',
-    'FEATURE_A',
-    'FEATURE_B'
-  ];
-
-  // Sample build data with multiple branches and more data points
-  const buildData = [
-    // REL_13_STABLE data
-    {
-      buildNumber: 101,
-      branch: 'REL_13_STABLE',
-      revision: '3850fcca69b5',
-      metric: 564578.0,
-      timestamp: '2024-02-01',
-      description: 'Improve query performance',
-    },
-    {
-      buildNumber: 102,
-      branch: 'REL_13_STABLE',
-      metric: 557362.69,
-      timestamp: '2024-02-15',
-      revision: '9061fd23c28f',
-      description: 'Optimize hash joins',
-    },
-    {
-      buildNumber: 103,
-      branch: 'REL_13_STABLE',
-      metric: 570000.0,
-      timestamp: '2024-03-01',
-      revision: 'a1234567890b',
-      description: 'Indexing improvements',
-    },
-    // REL_14_STABLE data
-    {
-      buildNumber: 201,
-      branch: 'REL_14_STABLE',
-      metric: 580000.0,
-      timestamp: '2024-02-01',
-      revision: 'a850fcca69b5',
-      description: 'Enhanced indexing',
-    },
-    {
-      buildNumber: 202,
-      branch: 'REL_14_STABLE',
-      metric: 585000.0,
-      timestamp: '2024-02-15',
-      revision: 'b061fd23c28f',
-      description: 'Memory optimization',
-    },
-    {
-      buildNumber: 203,
-      branch: 'REL_14_STABLE',
-      metric: 590000.0,
-      timestamp: '2024-03-01',
-      revision: 'b1234567890c',
-      description: 'Query planner updates',
-    },
-    // REL_15_STABLE data
-    {
-      buildNumber: 301,
-      branch: 'REL_15_STABLE',
-      metric: 590000.0,
-      timestamp: '2024-02-01',
-      revision: 'c850fcca69b5',
-      description: 'Parallel query improvements',
-    },
-    {
-      buildNumber: 302,
-      branch: 'REL_15_STABLE',
-      metric: 595000.0,
-      timestamp: '2024-02-15',
-      revision: 'd061fd23c28f',
-      description: 'Query planner updates',
-    },
-    {
-      buildNumber: 303,
-      branch: 'REL_15_STABLE',
-      metric: 600000.0,
-      timestamp: '2024-03-01',
-      revision: 'c1234567890d',
-      description: 'Optimizer enhancements',
-    },
-  ];
-
+  // State for selected test
+  const [selectedTest, setSelectedTest] = useState<PerformanceTest | null>(null);
+  // State for selected plant
+  const [selectedPlant, setSelectedPlant] = useState<PlantSummary | null>(null);
   // State for selected branches
-  const [selectedBranches, setSelectedBranches] = useState(['REL_13_STABLE', 'REL_14_STABLE']);
-  // Add view mode state to include bar chart
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  // Add view mode state
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'comparison'>('graph');
   
-  // Add type for build data
-  type BuildData = {
-    buildNumber: number;
-    branch: string;
-    revision: string;
-    metric: number;
-    timestamp: string;
-    description: string;
-  };
+  // Get unique branches from selected test's results for selected plant
+  const availableBranches = selectedTest && selectedPlant
+    ? [...new Set(selectedTest.testResults
+        .filter(result => result.builder_id === allPlants.findIndex(p => p.plant === selectedPlant.plant) + 1)
+        .map(result => result.branch))]
+    : [];
 
-  // Add type for sort config
-  type SortKey = keyof BuildData;
-
-  // Add sorting state with proper typing
-  const [sortConfig, setSortConfig] = useState<{
-    key: SortKey;
-    direction: 'asc' | 'desc';
-  }>({
-    key: 'timestamp',
-    direction: 'asc'
-  });
-
-  // Sorting function for table data with proper typing
-  const sortedData = () => {
-    const filteredData = buildData.filter(build => selectedBranches.includes(build.branch));
-    return [...filteredData].sort((a: BuildData, b: BuildData) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  };
-
-  // Sort request handler with proper typing
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // Add this plants data
-  const plants = [
-    { name: 'Plant A', results: 156, admin: 'Admin1', host: 'host1.example.com' },
-    { name: 'Plant B', results: 234, admin: 'Admin2', host: 'host2.example.com' },
-    { name: 'Plant C', results: 189, admin: 'Admin3', host: 'host3.example.com' },
-  ];
+  // Filter test results based on selected plant and branches
+  const filteredTestResults = selectedTest && selectedPlant
+    ? selectedTest.testResults.filter(result => 
+        result.builder_id === allPlants.findIndex(p => p.plant === selectedPlant.plant) + 1 &&
+        selectedBranches.includes(result.branch)
+      )
+    : [];
 
   // Chart configuration
   const chartData = {
-    labels: [...new Set(buildData.map(build => build.timestamp))], // Unique timestamps
+    labels: [...new Set(filteredTestResults.map(result => result.timestamp))],
     datasets: selectedBranches.map(branch => ({
       label: branch,
-      data: buildData
-        .filter(build => build.branch === branch)
-        .map(build => ({
-          x: build.timestamp,
-          y: build.metric,
+      data: filteredTestResults
+        .filter(result => result.branch === branch)
+        .map(result => ({
+          x: result.timestamp,
+          y: parseFloat(result.metric),
         })),
       borderColor: branch === 'REL_13_STABLE' ? 'rgb(75, 192, 192)' :
                   branch === 'REL_14_STABLE' ? 'rgb(255, 99, 132)' :
                   'rgb(153, 102, 255)',
-      tension: 0.4,  // Increase the tension value for more curvature
+      tension: 0.4,
       pointRadius: 6,
       pointHoverRadius: 8,
     })),
@@ -212,14 +249,14 @@ export default function Home() {
             const dataIndex = context[0].dataIndex;
             const datasetIndex = context[0].datasetIndex;
             const branch = selectedBranches[datasetIndex];
-            const build = buildData.find(b => 
+            const build = selectedTest?.testResults.find(b => 
               b.branch === branch && 
               b.timestamp === chartData.labels[dataIndex]
             );
             return build ? [
               `Branch: ${build.branch}`,
               `Commit: ${build.revision}`,
-              `Description: ${build.description}`,
+              `Description: ${selectedTest?.description || 'N/A'}`,
             ] : [];
           },
         },
@@ -264,137 +301,23 @@ export default function Home() {
     },
   };
 
-  // Add state for branch comparison
-  const [comparisonBranches, setComparisonBranches] = useState<{
-    [key: string]: string
-  }>({
-    'Plant A': 'REL_13_STABLE',
-    'Plant B': 'REL_14_STABLE',
-    'Plant C': 'REL_15_STABLE',
-  });
-
-  // Function to get latest metric for a branch
-  const getLatestMetric = (branch: string) => {
-    const branchData = buildData
-      .filter(build => build.branch === branch)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return branchData[0]?.metric || 0;
-  };
-
-  // Bar chart configuration
-  const barChartData = {
-    labels: plants.map(plant => plant.name),
-    datasets: [{
-      label: 'Latest Performance Score',
-      data: plants.map(plant => getLatestMetric(comparisonBranches[plant.name])),
-      backgroundColor: [
-        'rgba(75, 192, 192, 0.6)',
-        'rgba(255, 99, 132, 0.6)',
-        'rgba(153, 102, 255, 0.6)',
-      ],
-      borderColor: [
-        'rgb(75, 192, 192)',
-        'rgb(255, 99, 132)',
-        'rgb(153, 102, 255)',
-      ],
-      borderWidth: 1,
-      minBarLength: 10, // Add minimum bar length to ensure visibility
-    }],
-  };
-
-  const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      tooltip: {
-        callbacks: {
-          label: (context: any) => {
-            const plantName = context.label;
-            const branch = comparisonBranches[plantName];
-            const latestBuild = buildData
-              .filter(build => build.branch === branch)
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-            
-            return [
-              `Branch: ${branch}`,
-              `Score: ${context.raw.toFixed(2)}`,
-              `Build: #${latestBuild?.buildNumber || 'N/A'}`,
-              `Commit: ${latestBuild?.revision || 'N/A'}`,
-              `Date: ${latestBuild?.timestamp || 'N/A'}`,
-              `Description: ${latestBuild?.description || 'N/A'}`
-            ];
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true, // Start from zero to show full bar length
-        title: {
-          display: true,
-          text: 'Performance Score',
-        },
-        ticks: {
-          // Add callback to format large numbers
-          callback: function(value: any) {
-            if (value >= 1000000) {
-              return (value / 1000000).toFixed(1) + 'M';
-            }
-            if (value >= 1000) {
-              return (value / 1000).toFixed(1) + 'K';
-            }
-            return value;
-          }
-        },
-        // Add a suggested minimum to prevent scale from being too compressed
-        suggestedMin: Math.min(...plants.map(plant => getLatestMetric(comparisonBranches[plant.name]))) * 0.9,
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Plants',
-        },
-      },
-    },
-    // Add animation configuration
-    animation: {
-      duration: 1000,
-      easing: 'easeInOutQuart' as const,
-    },
-    // Improve bar chart layout
-    layout: {
-      padding: {
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 20
-      }
-    },
-    // Add hover effects
-    hover: {
-      mode: 'point' as const,
-      intersect: true,
-    },
-  };
-
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
+        <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-4">
+          <div className="flex h-16">
+            <div className="flex items-center pl-2">
+              <div className="flex items-center space-x-3">
+                <Image
+                  src="/image.png"
+                  alt="Postgres Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                />
                 <span className="text-2xl font-extrabold text-gray-900">Postgres</span>
               </div>
-            </div>
-            <div className="flex items-center">
-              <button className="text-gray-900 px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-100 transition">
-                Log In
-              </button>
             </div>
           </div>
         </div>
@@ -413,7 +336,7 @@ export default function Home() {
                     Branches
                   </label>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    {branches.map(branch => (
+                    {availableBranches.map(branch => (
                       <div key={branch} className="flex items-center">
                         <input
                           type="checkbox"
@@ -456,225 +379,160 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
-                      <a href="pf/dbt2">Database Test 2</a>
-                    </td>
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                      OLTP
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
-                      <a href="pf/dbt3">Database Test 3</a>
-                    </td>
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                      DSS
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
-                      <a href="pf/dbt5">Database Test 5</a>
-                    </td>
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                      OLTP
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
-                      <a href="pf/dbt7">Database Test 7</a>
-                    </td>
-                    <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                      DSS
-                    </td>
-                  </tr>
+                  {performanceTests.map((test) => (
+                    <tr 
+                      key={test.id} 
+                      className={`hover:bg-gray-50 cursor-pointer ${
+                        selectedTest?.id === test.id ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedTest(test);
+                        setSelectedPlant(null);
+                        setSelectedBranches([]);
+                      }}
+                    >
+                      <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
+                        {test.name}
+                      </td>
+                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                        {test.description}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </section>
 
           {/* Lower Right - Plants Table */}
-          <section className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900">Plants</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Plant</th>
-                    <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Results</th>
-                    <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Admin</th>
-                    <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Host</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plants.map((plant, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
-                        <a href={`/plant/${plant.name.toLowerCase()}`}>{plant.name}</a>
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-right text-gray-900">
-                        {plant.results}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {plant.admin}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {plant.host}
-                      </td>
+          {selectedTest && (
+            <section className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">Plants</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Plant</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Results</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Admin</th>
+                      <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Host</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {selectedTest.plants.map((plant) => (
+                      <tr 
+                        key={plant.plant} 
+                        className={`hover:bg-gray-50 cursor-pointer ${
+                          selectedPlant?.plant === plant.plant ? 'bg-blue-50' : ''
+                        }`}
+                        onClick={() => {
+                          setSelectedPlant(plant);
+                          // You could add additional logic here to filter test results by plant
+                        }}
+                      >
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-blue-600">
+                          {plant.plant}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-right text-gray-900">
+                          {plant.results}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {plant.admin}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                          {plant.host}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </div>
 
-        {/* Left Section - Charts (65% width on desktop) */}
-        <div className="flex-1 bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-gray-900">Performance Metrics</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('graph')}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-                  viewMode === 'graph'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Line Graph
-              </button>
-              <button
-                onClick={() => setViewMode('comparison')}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-                  viewMode === 'comparison'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Plant Comparison
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-                  viewMode === 'table'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Table View
-              </button>
-            </div>
-          </div>
-          
-          {viewMode === 'graph' ? (
-            <div className="h-[600px] bg-white rounded-lg">
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          ) : viewMode === 'comparison' ? (
-            <div className="space-y-4">
-              <div className="h-[400px] bg-white rounded-lg p-4">
-                <Bar data={barChartData} options={barChartOptions} />
+        {/* Charts Section */}
+        <div className="flex flex-col gap-6 p-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900">Performance Metrics</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('graph')}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                    viewMode === 'graph'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Line Graph
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                    viewMode === 'table'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Table View
+                </button>
               </div>
-              <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                {plants.map((plant) => (
-                  <div key={plant.name} className="flex flex-col space-y-2 bg-white p-4 rounded-lg shadow-sm">
-                    <label className="text-sm font-medium text-gray-700">
-                      {plant.name} Branch
-                    </label>
-                    <div className="flex flex-col space-y-1">
-                      <select
-                        value={comparisonBranches[plant.name]}
-                        onChange={(e) => setComparisonBranches({
-                          ...comparisonBranches,
-                          [plant.name]: e.target.value
-                        })}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      >
-                        {branches.map((branch) => (
-                          <option key={branch} value={branch}>
-                            {branch}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="text-xs text-gray-500">
-                        Latest Score: {getLatestMetric(comparisonBranches[plant.name]).toLocaleString()}
-                      </div>
-                    </div>
+            </div>
+            
+            {viewMode === 'graph' ? (
+              <div className="h-[600px] bg-white rounded-lg">
+                {selectedTest && selectedBranches.length > 0 ? (
+                  <Line data={chartData} options={chartOptions} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    Select a test and at least one branch to view the graph
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th 
-                      onClick={() => requestSort('timestamp')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Date {sortConfig.key === 'timestamp' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th 
-                      onClick={() => requestSort('branch')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Branch {sortConfig.key === 'branch' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th 
-                      onClick={() => requestSort('buildNumber')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Build # {sortConfig.key === 'buildNumber' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th 
-                      onClick={() => requestSort('metric')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Performance Score {sortConfig.key === 'metric' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th 
-                      onClick={() => requestSort('revision')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Commit {sortConfig.key === 'revision' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th 
-                      onClick={() => requestSort('description')}
-                      className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                    >
-                      Description {sortConfig.key === 'description' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedData().map((build, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {build.timestamp}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {build.branch}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {build.buildNumber}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {build.metric.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900 font-mono">
-                        {build.revision}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
-                        {build.description}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            ) : (
+              <div className="overflow-x-auto">
+                {selectedTest && selectedBranches.length > 0 ? (
+                  <table className="min-w-full border border-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Date</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Branch</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Build #</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Metric</th>
+                        <th className="px-4 py-2 border border-gray-200 text-left text-sm font-medium text-gray-700">Revision</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTestResults.map((result, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                            {result.timestamp}
+                          </td>
+                          <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                            {result.branch}
+                          </td>
+                          <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                            {result.build_number}
+                          </td>
+                          <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900">
+                            {result.metric}
+                          </td>
+                          <td className="px-4 py-2 border border-gray-200 text-sm text-gray-900 font-mono">
+                            {result.revision}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="h-[600px] flex items-center justify-center text-gray-500">
+                    Select a test and at least one branch to view the data
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Split>
     </main>
